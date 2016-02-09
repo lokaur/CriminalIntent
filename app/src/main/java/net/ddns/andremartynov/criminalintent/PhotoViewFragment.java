@@ -2,11 +2,13 @@ package net.ddns.andremartynov.criminalintent;
 
 import android.app.Dialog;
 import android.graphics.Bitmap;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.v4.app.DialogFragment;
 import android.support.v7.app.AlertDialog;
 import android.view.LayoutInflater;
 import android.view.View;
+import android.view.ViewTreeObserver;
 import android.widget.ImageView;
 
 import java.io.File;
@@ -16,6 +18,7 @@ public class PhotoViewFragment extends DialogFragment {
 	private static final String ARG_PHOTO = "photo_path";
 
 	private ImageView mPhotoView;
+	private File mPhotoFile;
 
 	public static PhotoViewFragment newInstance(File photoFile) {
 		Bundle args = new Bundle();
@@ -28,18 +31,21 @@ public class PhotoViewFragment extends DialogFragment {
 
 	@Override
 	public Dialog onCreateDialog(Bundle savedInstanceState) {
-		File photoFile = (File) getArguments().getSerializable(ARG_PHOTO);
+		mPhotoFile = (File) getArguments().getSerializable(ARG_PHOTO);
 
 		View v = LayoutInflater.from(getActivity())
 				.inflate(R.layout.dialog_photo, null);
 
 		mPhotoView = (ImageView) v.findViewById(R.id.dialog_photo_image_view);
-
-		if (photoFile != null) {
-			Bitmap photo = PictureUtils.getScaledBitmap(
-					photoFile.getPath(), getActivity());
-			mPhotoView.setImageBitmap(photo);
-		}
+		mPhotoView.getViewTreeObserver()
+				.addOnGlobalLayoutListener(new ViewTreeObserver.OnGlobalLayoutListener() {
+			@Override
+			public void onGlobalLayout() {
+				updatePhotoView();
+				if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN)
+					mPhotoView.getViewTreeObserver().removeOnGlobalLayoutListener(this);
+			}
+		});
 
 		mPhotoView.setOnClickListener(new View.OnClickListener() {
 			@Override
@@ -51,5 +57,15 @@ public class PhotoViewFragment extends DialogFragment {
 		return new AlertDialog.Builder(getActivity())
 				.setView(v)
 				.create();
+	}
+
+	private void updatePhotoView() {
+		if (mPhotoFile == null || !mPhotoFile.exists()) {
+			mPhotoView.setImageDrawable(null);
+		} else {
+			Bitmap bitmap = PictureUtils.getScaledBitmap(
+					mPhotoFile.getPath(), mPhotoView.getWidth(), mPhotoView.getHeight());
+			mPhotoView.setImageBitmap(bitmap);
+		}
 	}
 }
