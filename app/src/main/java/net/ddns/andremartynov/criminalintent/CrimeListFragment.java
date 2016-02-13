@@ -1,5 +1,7 @@
 package net.ddns.andremartynov.criminalintent;
 
+import android.app.Activity;
+import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.support.v4.app.Fragment;
@@ -32,6 +34,24 @@ public class CrimeListFragment extends Fragment {
 	private LinearLayout mNoCrimesLayout;
 
 	private Button mAddCrimeButton;
+
+	private Callbacks mCallbacks;
+
+	public interface Callbacks {
+		void onCrimeSelected(Crime crime);
+	}
+
+	@Override
+	public void onAttach(Activity activity) {
+		super.onAttach(activity);
+		mCallbacks = (Callbacks) activity;
+	}
+
+	@Override
+	public void onDetach() {
+		super.onDetach();
+		mCallbacks = null;
+	}
 
 	@Override
 	public View onCreateView(LayoutInflater inflater, ViewGroup container, Bundle savedInstanceState) {
@@ -100,7 +120,10 @@ public class CrimeListFragment extends Fragment {
 	public boolean onOptionsItemSelected(MenuItem item) {
 		switch (item.getItemId()) {
 			case R.id.menu_item_new_crime:
-				addCrimeAndStartCrimeFragment();
+				Crime crime = new Crime();
+				CrimeLab.get(getActivity()).addCrime(crime);
+				updateUI();
+				mCallbacks.onCrimeSelected(crime);
 				return true;
 			case R.id.menu_item_show_subtitle:
 				mIsSubtitleVisible = !mIsSubtitleVisible;
@@ -132,7 +155,7 @@ public class CrimeListFragment extends Fragment {
 		activity.getSupportActionBar().setSubtitle(subtitle);
 	}
 
-	private void updateUI() {
+	public void updateUI() {
 		CrimeLab crimeLab = CrimeLab.get(getActivity());
 		List<Crime> crimes = crimeLab.getCrimes();
 
@@ -171,7 +194,7 @@ public class CrimeListFragment extends Fragment {
 
 		@Override
 		public void onClick(View v) {
-			startActivity(CrimePagerActivity.newIntent(getActivity(), mCrime.getId()));
+			mCallbacks.onCrimeSelected(mCrime);
 		}
 	}
 
